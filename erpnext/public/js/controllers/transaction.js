@@ -282,6 +282,7 @@ erpnext.TransactionController = erpnext.taxes_and_totals.extend({
 					callback: function(r) {
 						if(!r.exc) {
 							me.frm.script_manager.trigger("price_list_rate", cdt, cdn);
+							me.toggle_conversion_factor();
 						}
 					}
 				});
@@ -554,6 +555,7 @@ erpnext.TransactionController = erpnext.taxes_and_totals.extend({
 				callback: function(r) {
 					if(!r.exc) {
 						me.conversion_factor(me.frm.doc, cdt, cdn);
+						me.toggle_conversion_factor()
 					}
 				}
 			});
@@ -566,7 +568,14 @@ erpnext.TransactionController = erpnext.taxes_and_totals.extend({
 			frappe.model.round_floats_in(item, ["qty", "conversion_factor"]);
 			item.stock_qty = flt(item.qty * item.conversion_factor, precision("stock_qty", item));
 			refresh_field("stock_qty", item.name, item.parentfield);
+			this.apply_price_list();
 		}
+	},
+
+	toggle_conversion_factor: function() {
+		// toggle read only property for conversion factor field if the uom and stock uom are same
+		me.frm.fields_dict.items.grid.toggle_enable("conversion_factor",
+			(item.uom != item.stock_uom)? true: false)
 	},
 
 	qty: function(doc, cdt, cdn) {
@@ -781,7 +790,8 @@ erpnext.TransactionController = erpnext.taxes_and_totals.extend({
 					"parent": d.parent,
 					"pricing_rule": d.pricing_rule,
 					"warehouse": d.warehouse,
-					"serial_no": d.serial_no
+					"serial_no": d.serial_no,
+					"conversion_factor": d.conversion_factor || 1.0
 				});
 
 				// if doctype is Quotation Item / Sales Order Iten then add Margin Type and rate in item_list
@@ -815,9 +825,7 @@ erpnext.TransactionController = erpnext.taxes_and_totals.extend({
 					if(k=="price_list_rate") {
 						if(flt(v) != flt(d.price_list_rate)) price_list_rate_changed = true;
 					}
-					if(v) {
-						frappe.model.set_value(d.doctype, d.name, k, v);
-					}
+					frappe.model.set_value(d.doctype, d.name, k, v);
 				}
 			}
 

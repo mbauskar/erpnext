@@ -51,12 +51,15 @@ class calculate_taxes_and_totals(object):
 		if not self.discount_amount_applied:
 			for item in self.doc.get("items"):
 				self.doc.round_floats_in(item)
+				item.price_list_rate = item.price_list_rate * (item.conversion_factor or 1.0)
 
 				if item.discount_percentage == 100:
 					item.rate = 0.0
 				elif not item.rate:
 					item.rate = flt(item.price_list_rate *
 						(1.0 - (item.discount_percentage / 100.0)), item.precision("rate"))
+				elif item.rate:
+					item.rate = item.price_list_rate or item.rate
 
 				if item.doctype in ['Quotation Item', 'Sales Order Item', 'Delivery Note Item', 'Sales Invoice Item']:
 					item.total_margin = self.calculate_margin(item)

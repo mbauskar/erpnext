@@ -176,6 +176,14 @@ def get_basic_details(args, item):
 		"is_fixed_asset": item.is_fixed_asset
 	})
 
+	# calculate the conversion_factor for the item
+	if args.stock_uom != args.uom and (not args.conversion_factor or args.conversion_factor == 1):
+		out.conversion_factor = get_conversion_factor(item.item_code, args.uom).get("conversion_factor") or 1.0
+	else:
+		out.conversion_factor = args.conversion_factor or 1.0
+
+	out.stock_qty = out.qty * out.conversion_factor
+
 	# if default specified in item is for another company, fetch from company
 	for d in [["Account", "income_account", "default_income_account"],
 		["Account", "expense_account", "default_expense_account"],
@@ -226,6 +234,8 @@ def get_price_list_rate(args, item_doc, out):
 
 		out.price_list_rate = flt(price_list_rate) * flt(args.plc_conversion_rate) \
 			/ flt(args.conversion_rate)
+
+		out.price_list_rate = out.price_list_rate * (out.conversion_factor or args.conversion_factor)
 
 		if not out.price_list_rate and args.transaction_type=="buying":
 			from erpnext.stock.doctype.item.item import get_last_purchase_details
